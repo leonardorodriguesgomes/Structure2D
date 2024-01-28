@@ -348,12 +348,11 @@ variaveis_sistema = [i for i in q if isinstance(i, sp.Symbol)] + [
 
 # Resolução do sistema
 sistema = K * q - S
-resolucao = sp.solve(sistema, variaveis_sistema)
-
 result = str(resolucao)
 mostrarresultado = st.checkbox('Mostrar resultado')
 
 if mostrarresultado:
+    resolucao = sp.solve(sistema, variaveis_sistema)
     st.write(result)
 
 
