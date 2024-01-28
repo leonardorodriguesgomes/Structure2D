@@ -353,8 +353,8 @@ def Calcular():
 
 
 if st.button('Calcular'): 
-    result1 = Calcular()
-    st.write(result1)
+    result = Calcular()
+    st.write(result)
 
 
 
