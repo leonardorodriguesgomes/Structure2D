@@ -230,130 +230,129 @@ if st.sidebar.button('Limpar arquivo'):
     AbaApoio.delete_cols(1)
     planilha.save(filename)
 
-def Calcular():
-    QTDE_BARRAS = len(barras)
 
-    # Cálculo do comprimento e ângulo de cada barra
-    for barra in barras:
-        no1 = nos[barra[0]]
-        no2 = nos[barra[1]]
-        barra.append(((no2[0] - no1[0]) ** 2 + (no2[1] - no1[1]) ** 2) ** 0.5)
-        barra.append(math.atan2(no2[1] - no1[1], no2[0] - no1[0]))
+QTDE_BARRAS = len(barras)
 
-    # Quantidade de nós e graus de liberdade
-    QTDE_NOS = len(nos)
-    GDL = 3 * QTDE_NOS
+# Cálculo do comprimento e ângulo de cada barra
+for barra in barras:
+    no1 = nos[barra[0]]
+    no2 = nos[barra[1]]
+    barra.append(((no2[0] - no1[0]) ** 2 + (no2[1] - no1[1]) ** 2) ** 0.5)
+    barra.append(math.atan2(no2[1] - no1[1], no2[0] - no1[0]))
 
-    # Definição dos símbolos
-    A, E, L, I, theta = sp.symbols(["A", "E", "L", "I", "theta"])
+# Quantidade de nós e graus de liberdade
+QTDE_NOS = len(nos)
+GDL = 3 * QTDE_NOS
 
-    # Definição das variáveis para a matriz de rigidez
-    COS = sp.cos(theta)
-    SIN = sp.sin(theta)
-    T = sp.Matrix(
+# Definição dos símbolos
+A, E, L, I, theta = sp.symbols(["A", "E", "L", "I", "theta"])
+
+# Definição das variáveis para a matriz de rigidez
+COS = sp.cos(theta)
+SIN = sp.sin(theta)
+T = sp.Matrix(
+    [
+        [COS, -SIN, 0, 0, 0, 0],
+        [SIN, COS, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0],
+        [0, 0, 0, COS, -SIN, 0],
+        [0, 0, 0, SIN, COS, 0],
+        [0, 0, 0, 0, 0, 1],
+    ]
+).T
+
+Ke_ = sp.Matrix(
+    [
+        [E * A / L, 0, 0, -E * A / L, 0, 0],
         [
-            [COS, -SIN, 0, 0, 0, 0],
-            [SIN, COS, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0],
-            [0, 0, 0, COS, -SIN, 0],
-            [0, 0, 0, SIN, COS, 0],
-            [0, 0, 0, 0, 0, 1],
-        ]
-    ).T
-
-    Ke_ = sp.Matrix(
+            0,
+            12 * E * I / L**3,
+            6 * E * I / L**2,
+            0,
+            -12 * E * I / L**3,
+            6 * E * I / L**2,
+        ],
+        [0, 6 * E * I / L**2, 4 * E * I / L, 0, -6 * E * I / L**2, 2 * E * I / L],
+        [-E * A / L, 0, 0, E * A / L, 0, 0],
         [
-            [E * A / L, 0, 0, -E * A / L, 0, 0],
+            0,
+            -12 * E * I / L**3,
+            -6 * E * I / L**2,
+            0,
+            12 * E * I / L**3,
+            -6 * E * I / L**2,
+        ],
+        [0, 6 * E * I / L**2, 2 * E * I / L, 0, -6 * E * I / L**2, 4 * E * I / L],
+    ]
+)
+
+Ke = T.T * Ke_ * T
+
+# Montagem da matriz de rigidez
+lista_Ke = []
+for i in range(QTDE_BARRAS):
+    lista_Ke.append(
+        Ke.subs(
             [
-                0,
-                12 * E * I / L**3,
-                6 * E * I / L**2,
-                0,
-                -12 * E * I / L**3,
-                6 * E * I / L**2,
-            ],
-            [0, 6 * E * I / L**2, 4 * E * I / L, 0, -6 * E * I / L**2, 2 * E * I / L],
-            [-E * A / L, 0, 0, E * A / L, 0, 0],
-            [
-                0,
-                -12 * E * I / L**3,
-                -6 * E * I / L**2,
-                0,
-                12 * E * I / L**3,
-                -6 * E * I / L**2,
-            ],
-            [0, 6 * E * I / L**2, 2 * E * I / L, 0, -6 * E * I / L**2, 4 * E * I / L],
-        ]
+                (I, barras[i][2]),
+                (E, barras[i][3]),
+                (A, barras[i][4]),
+                (L, barras[i][5]),
+                (theta, barras[i][6]),
+            ]
+        )
     )
 
-    Ke = T.T * Ke_ * T
+# Montagem da matriz de rigidez global
+K = sp.zeros(GDL, GDL)
+for i in range(QTDE_BARRAS):
+    no1 = barras[i][0]
+    no2 = barras[i][1]
+    indices = [3 * no1, 3 * no1 + 1, 3 * no1 + 2, 3 * no2, 3 * no2 + 1, 3 * no2 + 2]
+    for j in range(6):
+        for k in range(6):
+            K[indices[j], indices[k]] += lista_Ke[i][j, k]
 
-    # Montagem da matriz de rigidez
-    lista_Ke = []
-    for i in range(QTDE_BARRAS):
-        lista_Ke.append(
-            Ke.subs(
-                [
-                    (I, barras[i][2]),
-                    (E, barras[i][3]),
-                    (A, barras[i][4]),
-                    (L, barras[i][5]),
-                    (theta, barras[i][6]),
-                ]
-            )
-        )
+# Montagem do vetor de forças
+S = [0] * GDL
+for i in range(len(forcas)):
+    no = forcas[i][0]
+    theta = forcas[i][1]
+    modulo = forcas[i][2]
+    momento = forcas[i][3]
+    S[3 * no] += modulo * sp.cos(theta)
+    S[3 * no + 1] += modulo * sp.sin(theta)
+    S[3 * no + 2] += momento
+S = sp.Matrix(S)
 
-    # Montagem da matriz de rigidez global
-    K = sp.zeros(GDL, GDL)
-    for i in range(QTDE_BARRAS):
-        no1 = barras[i][0]
-        no2 = barras[i][1]
-        indices = [3 * no1, 3 * no1 + 1, 3 * no1 + 2, 3 * no2, 3 * no2 + 1, 3 * no2 + 2]
-        for j in range(6):
-            for k in range(6):
-                K[indices[j], indices[k]] += lista_Ke[i][j, k]
+# Montagem do vetor de deslocamentos
+q = sp.symbols(["q" + str(i) for i in range(1, GDL + 1)])
+for i in range(len(apoios)):
+    no = apoios[i][0]
+    if apoios[i][1]:
+        q[3 * no] = 0
+        S[3 * no] = sp.symbols("S" + str(3 * no + 1))
+    if apoios[i][2]:
+        q[3 * no + 1] = 0
+        S[3 * no + 1] = sp.symbols("S" + str(3 * no + 2))
+    if apoios[i][3]:
+        q[3 * no + 2] = 0
+        S[3 * no + 2] = sp.symbols("S" + str(3 * no + 3))
+q = sp.Matrix(q)
 
-    # Montagem do vetor de forças
-    S = [0] * GDL
-    for i in range(len(forcas)):
-        no = forcas[i][0]
-        theta = forcas[i][1]
-        modulo = forcas[i][2]
-        momento = forcas[i][3]
-        S[3 * no] += modulo * sp.cos(theta)
-        S[3 * no + 1] += modulo * sp.sin(theta)
-        S[3 * no + 2] += momento
-    S = sp.Matrix(S)
+# Separando variáveis a serem resolvidas
+variaveis_sistema = [i for i in q if isinstance(i, sp.Symbol)] + [
+    i for i in S if isinstance(i, sp.Symbol)
+]
 
-    # Montagem do vetor de deslocamentos
-    q = sp.symbols(["q" + str(i) for i in range(1, GDL + 1)])
-    for i in range(len(apoios)):
-        no = apoios[i][0]
-        if apoios[i][1]:
-            q[3 * no] = 0
-            S[3 * no] = sp.symbols("S" + str(3 * no + 1))
-        if apoios[i][2]:
-            q[3 * no + 1] = 0
-            S[3 * no + 1] = sp.symbols("S" + str(3 * no + 2))
-        if apoios[i][3]:
-            q[3 * no + 2] = 0
-            S[3 * no + 2] = sp.symbols("S" + str(3 * no + 3))
-    q = sp.Matrix(q)
+# Resolução do sistema
+sistema = K * q - S
 
-    # Separando variáveis a serem resolvidas
-    variaveis_sistema = [i for i in q if isinstance(i, sp.Symbol)] + [
-        i for i in S if isinstance(i, sp.Symbol)
-    ]
-
-    # Resolução do sistema
-    sistema = K * q - S
-    resolucao = sp.solve(sistema, variaveis_sistema)
-    result = str(resolucao)
-    return result
 
 
 if st.button('Calcular'): 
-    result = Calcular()
+    resolucao = sp.solve(sistema, variaveis_sistema)
+    result = str(resolucao)
     st.write(result)
 
 
