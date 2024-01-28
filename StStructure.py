@@ -352,8 +352,8 @@ sistema = K * q - S
 
 if st.button('Calcular'): 
     resolucao = sp.solve(sistema, variaveis_sistema)
-    result = str(resolucao)
-    st.write(result)
+    resultado = str(resolucao)
+    st.write(resultado)
 
 
 
