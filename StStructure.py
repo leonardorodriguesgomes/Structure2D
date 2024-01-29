@@ -317,12 +317,21 @@ for i in range(QTDE_BARRAS):
 S = [0] * GDL
 for i in range(len(forcas)):
     no = forcas[i][0]
-    Fx = forcas[i][1]
-    Fy = forcas[i][2]
+    ForcaX = forcas[i][1]
+    ForcaY = forcas[i][2]
     momento = forcas[i][3]
-    S[3 * no] += Fx
-    S[3 * no + 1] += Fy
-    S[3 * no + 2] += momento
+    if type(ForcaX) == str:
+        S[3* no] = sp.symbols(["S"+str(3*no+1)])
+    else:
+        S[3 * no] += ForcaX
+    if type(ForcaY) ==str:
+        S[3 * no + 1] = sp.symbols(["S"+str(3*no+2)])
+    else:
+        S[3 * no + 1] += ForcaY
+    if type(momento) == str:
+        S[3 * no + 2] = sp.symbols(["S"+str(3*no+3)])
+    else: 
+        S[3 * no + 2] += momento
 S = sp.Matrix(S)
 
 # Montagem do vetor de deslocamentos
