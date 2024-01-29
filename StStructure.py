@@ -317,11 +317,11 @@ for i in range(QTDE_BARRAS):
 S = [0] * GDL
 for i in range(len(forcas)):
     no = forcas[i][0]
-    theta = forcas[i][1]
-    modulo = forcas[i][2]
+    Fx = forcas[i][1]
+    Fy = forcas[i][2]
     momento = forcas[i][3]
-    S[3 * no] += modulo * sp.cos(theta)
-    S[3 * no + 1] += modulo * sp.sin(theta)
+    S[3 * no] += Fx
+    S[3 * no + 1] += Fy
     S[3 * no + 2] += momento
 S = sp.Matrix(S)
 
